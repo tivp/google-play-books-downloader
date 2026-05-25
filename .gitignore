@@ -1,4 +1,8 @@
 node_modules
 *.pdf
 *_Toc.txt
-temp/*
+temp/
+downloads/
+cookies.txt
+refrence_repo/
+.DS_Store
