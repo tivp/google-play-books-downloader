@@ -7,6 +7,9 @@ Un script de línea de comandos para descargar y desencriptar libros comprados e
 ## ✨ Resumen
 Un script moderno en TypeScript para Bun diseñado para descargar tus libros de Google Play Books comprados, desencriptarlos y compilarlos localmente en archivos PDF o EPUB listos para su lectura sin conexión.
 
+> [!NOTE]
+> **Origen del proyecto**: Este proyecto es un *fork* desarrollado a partir del código original de [google-play-book-downloader de kuchingneko28](https://github.com/kuchingneko28/google-play-book-downloader) con el fin de mejorarlo, solucionar diversos fallos (bugs), e implementar soporte completo en español y una cómoda interfaz gráfica web interactiva.
+
 ### Características
 * **Desencriptación rápida**: Utiliza la lógica de bit-shuffling de Google y descifra con claves AES-128 nativas de forma instantánea.
 * **Formatos de descarga**: Descarga imágenes de alta resolución para PDFs y capítulos XHTML con recursos integrados para EPUBs.
