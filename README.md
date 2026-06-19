@@ -70,10 +70,15 @@ bun install
 Para poder descargar tus libros comprados, el script necesita autenticarse en Google Play Books usando tus cookies de sesión. Sigue estos pasos para obtenerlas:
 
 1. Instala la extensión de Chrome llamada [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) (disponible en la Chrome Web Store).
+
 2. Abre tu navegador, ve a [Google Play Books (Mis libros)](https://play.google.com/books) e inicia sesión con tu cuenta de Google.
+
 3. Haz clic en el icono de la extensión **Get cookies.txt LOCALLY** en la barra de extensiones.
+
 4. En el menú que aparece, haz clic en el botón **"Export"** o **"Export As"** para descargar el archivo de cookies.
+
 5. Guarda o renombra el archivo descargado como `cookies.txt`.
+
 6. Mueve el archivo `cookies.txt` dentro de la carpeta raíz de este proyecto (`google-play-books-downloader/`).
 
 > [!WARNING]
@@ -122,10 +127,15 @@ Una vez iniciado el servidor, abre tu navegador web y accede a:
 ## 🔧 Opciones (CLI)
 
 - `-f, --format <format>`: Formato de salida (pdf, epub o auto) (predeterminado: `pdf`)
+
 - `-c, --cookies <path>`: Ruta a tu archivo cookies.txt (predeterminado: `./cookies.txt`)
+
 - `-o, --output <dir>`: Directorio donde guardar los libros descargados (predeterminado: `./downloads`)
+
 - `-t, --temp <dir>`: Directorio para la caché de archivos temporales (predeterminado: `./temp`)
+
 - `-p, --pace <ms>`: Retraso en milisegundos entre peticiones para regular el ritmo (predeterminado: `300`)
+
 - `-v, --verbose`: Habilitar registros de depuración detallados (predeterminado: `false`)
 
 ## 🧪 Ejecutar Pruebas
@@ -139,11 +149,17 @@ bun run test
 ## 📂 Estructura del Proyecto
 
 - `src/index.ts` - Punto de entrada binario (con shebang).
+
 - `src/cli.ts` - Configuración de la CLI, parseador de argumentos y detector de formato.
+
 - `src/server.ts` - Servidor web Bun para la interfaz gráfica interactiva.
+
 - `src/public/` - Interfaz frontend de la versión web (`index.html`).
+
 - `src/downloader/` - Clases principales de descarga (orquestador `base.ts`, `pdf.ts` para páginas PDF, `epub.ts` para segmentos EPUB).
+
 - `src/utils/` - Scripts de utilidad (`cookie.ts` para auth, `crypto.ts` para descifrado AES, `epub-builder.ts` para EPUB zip, `logger.ts` para registros con iconos de progreso, `helpers.ts` para el sistema de archivos, `args.ts` para procesar argumentos, `config.ts` para leer el idioma y `i18n.ts` para internacionalización).
+
 - `tests/` - Pruebas unitarias completas (argumentos, configuración, cookies, criptografía y descargas de EPUB).
 
 ## ⚖️ Licencia
@@ -152,8 +168,11 @@ bun run test
 **google-play-books-downloader** es software libre bajo la licencia **GNU GPLv3**. Resumen rápido de lo que te permite y exige:
 
 * 🔓 **Libertad de uso**: Puedes ejecutar, estudiar y modificar el código para cualquier propósito.
+
 * 📦 **Compartir**: Puedes distribuir copias del software y de tus modificaciones.
+
 * 🔄 **Copyleft**: Cualquier trabajo derivado o mejora debe ser liberado bajo esta misma licencia (código abierto).
+
 * 🚫 **Sin comercialización cerrada**: No se permite cerrar el código ni hacerlo comercial cerrado.
 
 Consulta la licencia [aquí](./LICENSE) para obtener más detalles.
