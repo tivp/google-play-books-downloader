@@ -1,4 +1,4 @@
-# google-play-books-downloader 📚
+# Google Play Books Downloader 📚
 
 Un script de línea de comandos para descargar y desencriptar libros comprados en Google Play Books a formatos PDF o EPUB. Reescripto en TypeScript para Bun, utilizando APIs web nativas para mayor velocidad.
 
