@@ -35,14 +35,27 @@ curl -fsSL https://bun.sh/install | bash
 
 Asegúrate de tener Bun instalado antes de proceder.
 
+### 1. Clonar e Instalar
 ```bash
 # Clonar el repositorio e instalar dependencias
 git clone https://github.com/tivp/google-play-books-downloader.git
 cd google-play-books-downloader
 bun install
-
-# Exportar el archivo cookies.txt (por ejemplo, mediante una extensión del navegador) a esta carpeta
 ```
+
+### 2. Obtener el archivo `cookies.txt` (Paso obligatorio)
+Para poder descargar tus libros comprados, el script necesita autenticarse en Google Play Books usando tus cookies de sesión. Sigue estos pasos para obtenerlas:
+
+1. Instala la extensión de Chrome llamada **Get cookies.txt LOCALLY** (disponible en la Chrome Web Store).
+2. Abre tu navegador, ve a [Google Play Books (Mis libros)](https://play.google.com/books) e inicia sesión con tu cuenta de Google.
+3. Haz clic en el icono de la extensión **Get cookies.txt LOCALLY** en la barra de extensiones.
+4. En el menú que aparece, haz clic en el botón **"Export"** o **"Export As"** para descargar el archivo de cookies.
+5. Guarda o renombra el archivo descargado como `cookies.txt`.
+6. Mueve el archivo `cookies.txt` dentro de la carpeta raíz de este proyecto (`google-play-books-downloader/`).
+
+> [!WARNING]
+> **Seguridad**: El archivo `cookies.txt` contiene tus credenciales de sesión activas de Google. **Nunca compartas ni subas este archivo a GitHub**. Por defecto, ya está añadido al archivo `.gitignore` de este proyecto para evitar exposiciones accidentales.
+
 
 ### Modo de línea de comandos (CLI)
 
