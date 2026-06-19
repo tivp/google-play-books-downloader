@@ -79,6 +79,7 @@ Por defecto, el proyecto se ejecuta en inglés (tanto en la línea de comandos c
 
 1. Crea un archivo llamado `config.txt` en la raíz del proyecto.
 2. Agrega la siguiente línea al archivo:
+
    ```text
    Language=ES
    ```
