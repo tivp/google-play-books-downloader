@@ -165,14 +165,14 @@ bun run test
 ## ⚖️ Licencia
 [![GNU GPLv3 Image](https://www.gnu.org/graphics/gplv3-127x51.png)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
-**google-play-books-downloader** es software libre bajo la licencia **GNU GPLv3**. Resumen rápido de lo que te permite y exige:
+google-play-books-downloader está bajo la licencia **GNU GPLv3**:
 
-* 🔓 **Libertad de uso**: Puedes ejecutar, estudiar y modificar el código para cualquier propósito.
+* **Libertad de uso**: Puedes ejecutar, estudiar y modificar el código.
 
-* 📦 **Compartir**: Puedes distribuir copias del software y de tus modificaciones.
+* **Compartir**: Puedes distribuir copias del proyecto original o modificado.
 
-* 🔄 **Copyleft**: Cualquier trabajo derivado o mejora debe ser liberado bajo esta misma licencia (código abierto).
+* **Código abierto obligado**: Cualquier mejora o derivado debe liberarse bajo esta misma licencia.
 
-* 🚫 **Sin comercialización cerrada**: No se permite cerrar el código ni hacerlo comercial cerrado.
+* **No comercial cerrado**: Prohibido cerrar el código o privatizar sus mejoras.
 
-Consulta la licencia [aquí](./LICENSE) para obtener más detalles.
+Consulta la licencia [aquí](./LICENSE) para más detalles.
