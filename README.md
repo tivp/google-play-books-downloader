@@ -8,6 +8,7 @@ Un script de línea de comandos para descargar y desencriptar libros comprados e
 2. **Clave de desencriptación**: Obtiene el HTML del lector de libros, extrae un payload codificado en base64 y descifra la clave AES de 16 bytes mediante la lógica de manipulación de bits (bit-shuffling) de Google.
 3. **Manifiesto**: Descarga el manifiesto JSON del libro.
 4. **Descarga y Desencriptación**:
+
    - **Modo PDF**: Descarga las imágenes en alta resolución de las páginas encriptadas, las desencripta a través de AES-128-CBC y las une en un PDF utilizando `pdf-lib`. Detecta y maneja automáticamente el orden de páginas con diseño de derecha a izquierda (RTL, como en el Manga).
    - **Modo EPUB**: Descarga los capítulos XHTML encriptados, los desencripta (vector de inicialización/IV + longitud + bloques de cifrado), descarga e integra todos los recursos en línea (imágenes) como archivos comprimidos dentro de la estructura del EPUB para soporte sin conexión, obtiene la portada del libro y los empaqueta en un archivo zip EPUB válido.
 
@@ -46,7 +47,7 @@ bun install
 ### 2. Obtener el archivo `cookies.txt` (Paso obligatorio)
 Para poder descargar tus libros comprados, el script necesita autenticarse en Google Play Books usando tus cookies de sesión. Sigue estos pasos para obtenerlas:
 
-1. Instala la extensión de Chrome llamada **Get cookies.txt LOCALLY** (disponible en la Chrome Web Store).
+1. Instala la extensión de Chrome llamada [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) (disponible en la Chrome Web Store).
 2. Abre tu navegador, ve a [Google Play Books (Mis libros)](https://play.google.com/books) e inicia sesión con tu cuenta de Google.
 3. Haz clic en el icono de la extensión **Get cookies.txt LOCALLY** en la barra de extensiones.
 4. En el menú que aparece, haz clic en el botón **"Export"** o **"Export As"** para descargar el archivo de cookies.
@@ -56,6 +57,14 @@ Para poder descargar tus libros comprados, el script necesita autenticarse en Go
 > [!WARNING]
 > **Seguridad**: El archivo `cookies.txt` contiene tus credenciales de sesión activas de Google. **Nunca compartas ni subas este archivo a GitHub**. Por defecto, ya está añadido al archivo `.gitignore` de este proyecto para evitar exposiciones accidentales.
 
+### 3. Configuración de Idioma (Opcional)
+Por defecto, el proyecto se ejecuta en inglés (tanto en la línea de comandos como en la interfaz web). Si deseas cambiar el idioma de la aplicación a español:
+
+1. Crea un archivo llamado `config.txt` en la raíz del proyecto.
+2. Agrega la siguiente línea al archivo:
+   ```text
+   Language=ES
+   ```
 
 ### Modo de línea de comandos (CLI)
 
@@ -102,9 +111,11 @@ bun run test
 
 - `src/index.ts` - Punto de entrada binario (con shebang).
 - `src/cli.ts` - Configuración de la CLI, parseador de argumentos y detector de formato.
+- `src/server.ts` - Servidor web Bun para la interfaz gráfica interactiva.
+- `src/public/` - Interfaz frontend de la versión web (`index.html`).
 - `src/downloader/` - Clases principales de descarga (orquestador `base.ts`, `pdf.ts` para páginas PDF, `epub.ts` para segmentos EPUB).
-- `src/utils/` - Scripts de utilidad (`cookie.ts` para el procesamiento de cookies, `crypto.ts` para la desencriptación AES, `epub-builder.ts` para la generación del archivo zip EPUB, `logger.ts` para iconos de colores y registro de progreso, y `helpers.ts` para funciones generales del sistema de archivos y control de ritmo).
-- `tests/` - Pruebas unitarias para el parseador de cookies y las rutinas de generación de claves criptográficas.
+- `src/utils/` - Scripts de utilidad (`cookie.ts` para auth, `crypto.ts` para descifrado AES, `epub-builder.ts` para EPUB zip, `logger.ts` para registros con iconos de progreso, `helpers.ts` para el sistema de archivos, `args.ts` para procesar argumentos, `config.ts` para leer el idioma y `i18n.ts` para internacionalización).
+- `tests/` - Pruebas unitarias completas (argumentos, configuración, cookies, criptografía y descargas de EPUB).
 
 ## Licencia
 
