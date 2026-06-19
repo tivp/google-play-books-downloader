@@ -11,9 +11,13 @@ Un script moderno en TypeScript para Bun diseñado para descargar tus libros de 
 
 ### Características
 * **Desencriptación rápida**: Utiliza la lógica de bit-shuffling de Google y descifra con claves AES-128 nativas de forma instantánea.
+
 * **Formatos de descarga**: Descarga imágenes de alta resolución para PDFs y capítulos XHTML con recursos integrados para EPUBs.
+
 * **Interfaz Dual**: Ejecución directa en consola (CLI) o a través de una interfaz web gráfica e interactiva.
+
 * **Manga & RTL**: Detecta y procesa automáticamente páginas leídas de derecha a izquierda.
+
 * **Multi-idioma**: Adaptación de interfaz y consola a español e inglés mediante configuración local.
 
 ## 🛠️ Cómo funciona bajo el capó
