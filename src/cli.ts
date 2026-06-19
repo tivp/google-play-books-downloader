@@ -6,6 +6,8 @@ import { PdfDownloader } from './downloader/pdf';
 import { GoogleBookManifest } from './types';
 import { getCookieHeader } from './utils/cookie';
 import { logger } from './utils/logger';
+import { preProcessArgs } from './utils/args';
+import { t } from './utils/i18n';
 
 interface CliOptions {
   format: 'pdf' | 'epub' | 'auto';
@@ -14,12 +16,13 @@ interface CliOptions {
   temp: string;
   pace: string;
   verbose: boolean;
+  '--'?: string[];
 }
 
 /**
  * Automatically detects the format by inspecting the book manifest content.
  */
-async function detectFormat(
+export async function detectFormat(
   bookId: string,
   cookiesPath: string
 ): Promise<{ format: 'pdf' | 'epub'; manifest: GoogleBookManifest }> {
@@ -58,16 +61,22 @@ async function main() {
     .option('-p, --pace <ms>', 'Pacing delay in milliseconds between requests', { default: '300' })
     .option('-v, --verbose', 'Enable verbose output logging', { default: false })
     .action(async (bookId: string | undefined, options: CliOptions) => {
+      // Resolve book-id, including cases where it starts with a hyphen and was parsed under options['--']
+      let activeBookId = bookId;
+      if (!activeBookId && options['--'] && options['--'].length > 0) {
+        activeBookId = options['--'][0];
+      }
+
       // If book-id is omitted, show the help menu
-      if (!bookId) {
+      if (!activeBookId) {
         cli.outputHelp();
         process.exit(0);
       }
 
       logger.showDebug = options.verbose;
 
-      logger.step('Google Play Book Downloader');
-      logger.info(`Book ID: ${bookId}`);
+      logger.step(t('cli_title'));
+      logger.info(`${t('book_id')}: ${activeBookId}`);
 
       // Resolve options paths
       const cookiesPath = path.resolve(options.cookies);
@@ -77,14 +86,12 @@ async function main() {
 
       // Validate inputs
       if (!fs.existsSync(cookiesPath)) {
-        logger.error(
-          `Cookies file not found at: ${cookiesPath}\nPlease export cookies.txt from Play Books in your browser and place it here.`
-        );
+        logger.error(t('cookies_missing_cli', { path: cookiesPath }));
         process.exit(1);
       }
 
       if (isNaN(paceMs) || paceMs < 0) {
-        logger.error('Pacing delay must be a positive number.');
+        logger.error(t('invalid_pace'));
         process.exit(1);
       }
 
@@ -93,14 +100,14 @@ async function main() {
 
       try {
         if (options.format === 'auto') {
-          logger.info('Auto-detecting optimal format...');
-          const detected = await detectFormat(bookId, cookiesPath);
+          logger.info(t('detecting_format_cli'));
+          const detected = await detectFormat(activeBookId, cookiesPath);
           chosenFormat = detected.format;
           preFetchedManifest = detected.manifest;
         } else if (options.format === 'pdf' || options.format === 'epub') {
           chosenFormat = options.format;
         } else {
-          logger.error(`Invalid format '${options.format}'. Supported formats: pdf, epub, auto.`);
+          logger.error(t('invalid_format', { format: options.format }));
           process.exit(1);
         }
 
@@ -115,22 +122,30 @@ async function main() {
         };
 
         if (chosenFormat === 'pdf') {
-          const downloader = new PdfDownloader(bookId, downloaderOptions);
+          const downloader = new PdfDownloader(activeBookId, downloaderOptions);
           await downloader.run();
         } else {
-          const downloader = new EpubDownloader(bookId, downloaderOptions);
+          const downloader = new EpubDownloader(activeBookId, downloaderOptions);
           await downloader.run();
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        logger.error(`Execution Failed: ${msg}`);
+        logger.error(t('execution_failed', { error: msg }));
         process.exit(1);
       }
     });
 
   cli.help();
   cli.version('2.0.0');
-  cli.parse();
+  cli.parse(preProcessArgs(process.argv));
 }
 
-main();
+const isCliEntry = process.argv[1] && (
+  process.argv[1].endsWith('cli.ts') || 
+  process.argv[1].endsWith('index.ts') || 
+  process.argv[1].endsWith('cli.js') || 
+  process.argv[1].endsWith('index.js')
+);
+if (isCliEntry) {
+  main();
+}

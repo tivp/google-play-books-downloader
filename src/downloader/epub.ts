@@ -6,6 +6,7 @@ import { buildEpub, Chapter, Cover, EpubImage } from "../utils/epub-builder";
 import { logger } from "../utils/logger";
 import { GoogleBookSegment } from "../types";
 import { safeName, delay } from "../utils/helpers";
+import { t } from "../utils/i18n";
 
 export class EpubDownloader extends BaseDownloader {
   private epubImages: EpubImage[] = [];
@@ -19,11 +20,18 @@ export class EpubDownloader extends BaseDownloader {
    * downloads them, and stores them in memory.
    */
   async processAndDownloadImages(html: string, segmentLabel: string): Promise<string> {
-    const urlRegex = /(?:src|href|xlink:href)=["'](https?:\/\/[^"']+)["']/gi;
     let match;
     const urls = new Set<string>();
 
-    while ((match = urlRegex.exec(html)) !== null) {
+    // 1. Extract URLs from HTML <img> tags
+    const imgRegex = /<img\s+[^>]*?src=["'](https?:\/\/[^"']+)["']/gi;
+    while ((match = imgRegex.exec(html)) !== null) {
+      urls.add(match[1]);
+    }
+
+    // 2. Extract URLs from SVG <image> tags (which use href or xlink:href)
+    const svgImageRegex = /<image\s+[^>]*?(?:href|xlink:href)=["'](https?:\/\/[^"']+)["']/gi;
+    while ((match = svgImageRegex.exec(html)) !== null) {
       urls.add(match[1]);
     }
 
@@ -77,21 +85,55 @@ export class EpubDownloader extends BaseDownloader {
   }
 
   /**
-   * Ensures the XHTML has a link to its stylesheet.
+   * Wraps the segment HTML in a valid XHTML template and ensures it is well-formed.
    */
-  linkStylesheet(xhtml: string, label: string): string {
-    const linkTag = `<link rel="stylesheet" type="text/css" href="${label}.css" />`;
-    if (xhtml.includes("</head>")) {
-      return xhtml.replace("</head>", `${linkTag}\n</head>`);
-    } else if (xhtml.includes("<head>")) {
-      return xhtml.replace("<head>", `<head>\n${linkTag}`);
+  toValidXhtml(html: string, label: string, chapterTitle: string): string {
+    let bodyContent = html;
+    
+    // Remove XML declarations and DOCTYPE if present
+    bodyContent = bodyContent.replace(/<\?xml[^>]*\?>/gi, "");
+    bodyContent = bodyContent.replace(/<!DOCTYPE[^>]*>/gi, "");
+    
+    // Extract body content if <body> tag exists
+    const bodyMatch = bodyContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    if (bodyMatch) {
+      bodyContent = bodyMatch[1];
     } else {
-      const htmlMatch = xhtml.match(/<html[^>]*>/i);
-      if (htmlMatch) {
-        return xhtml.replace(htmlMatch[0], `${htmlMatch[0]}\n<head>${linkTag}</head>`);
-      }
-      return `<head>${linkTag}</head>\n${xhtml}`;
+      // Clean up other structural HTML tags if they exist at root level
+      bodyContent = bodyContent
+        .replace(/<html[^>]*>/gi, "")
+        .replace(/<\/html>/gi, "")
+        .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, "")
+        .replace(/<body[^>]*>/gi, "")
+        .replace(/<\/body>/gi, "");
     }
+
+    // Clean up empty closing tags for void elements before making them self-closing
+    bodyContent = bodyContent.replace(/<\/(br|hr|img|link|meta)>/gi, "");
+
+    // Convert self-closing HTML tags to XML-compliant self-closing tags
+    bodyContent = bodyContent.replace(/<(br|hr|img|link|meta)([^>]*?)(?<!\/)>/gi, "<$1$2 />");
+
+    // Escape title characters for XML safety
+    const escapedTitle = chapterTitle
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+
+    return `<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>${escapedTitle}</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="${label}.css" />
+  </head>
+  <body>
+    ${bodyContent.trim()}
+  </body>
+</html>`;
   }
 
   /**
@@ -100,7 +142,7 @@ export class EpubDownloader extends BaseDownloader {
   async downloadCover(): Promise<Cover | undefined> {
     try {
       const coverUrl = `https://books.google.com/books/content?id=${this.bookId}&printsec=frontcover&img=1&zoom=3`;
-      logger.info("Downloading book cover image...");
+      logger.info(t("download_cover"));
       const response = await fetch(coverUrl, { headers: this.headers });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -114,7 +156,7 @@ export class EpubDownloader extends BaseDownloader {
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logWarn(`Could not download book cover: ${msg}. EPUB will be built without a cover page.`);
+      this.logWarn(t("no_cover", { msg }));
       return undefined;
     }
   }
@@ -128,55 +170,9 @@ export class EpubDownloader extends BaseDownloader {
     aesKey: Buffer,
     label: string
   ): Promise<string> {
-    let resultHtml = segmentHtml;
-    if (!segmentObj.page || segmentObj.page.length === 0) {
-      return resultHtml;
-    }
-
-    for (const p of segmentObj.page) {
-      if (p.src) {
-        try {
-          logger.debug(`Downloading segment page image: ${p.pid}`);
-          const pageUrl = new URL(p.src);
-          pageUrl.searchParams.set("w", "10000");
-          pageUrl.searchParams.set("h", "10000");
-          pageUrl.searchParams.set("zoom", "3");
-          pageUrl.searchParams.set("enc_all", "1");
-          pageUrl.searchParams.set("img", "1");
-
-          const response = await fetch(pageUrl.toString(), { headers: this.headers });
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const contentType = response.headers.get("content-type") || "image/jpeg";
-          const ext = contentType.includes("png") ? "png" : "jpeg";
-          const filename = `images/${p.pid}.${ext}`;
-
-          const arrayBuffer = await response.arrayBuffer();
-          const decryptedImage = decryptPage(Buffer.from(arrayBuffer), aesKey);
-
-          this.epubImages.push({
-            filename,
-            data: decryptedImage,
-            mimeType: contentType,
-          });
-
-          // Embed the image inside the segment container div
-          const imgTag = `<img src="${filename}" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: -1;" />`;
-          const matchSegment = resultHtml.match(/<div[^>]*class="[^"]*gb-segment[^"]*"[^>]*>/i);
-          if (matchSegment) {
-            const insertIndex = resultHtml.indexOf(matchSegment[0]) + matchSegment[0].length;
-            resultHtml = resultHtml.slice(0, insertIndex) + "\n" + imgTag + resultHtml.slice(insertIndex);
-          } else {
-            resultHtml = imgTag + "\n" + resultHtml;
-          }
-        } catch (imgErr) {
-          const msg = imgErr instanceof Error ? imgErr.message : String(imgErr);
-          logger.warn(`Failed to download page image ${p.pid} for segment ${label}: ${msg}`);
-        }
-      }
-    }
-    return resultHtml;
+    // In reflowable EPUB layout, we do NOT want to overlay the scanned page images behind the flowing text,
+    // as it creates overlapping text/layouts and duplicate cover pages.
+    return segmentHtml;
   }
 
   /**
@@ -192,7 +188,7 @@ export class EpubDownloader extends BaseDownloader {
 
     if (!link) {
       if (!logger.showDebug) process.stdout.write("\n");
-      logger.info(`[${i + 1}/${total}] Skipped segment ${label} (missing link)`);
+      logger.info(`[${i + 1}/${total}] ` + t("skipped_segment", { label }));
       return null;
     }
 
@@ -242,11 +238,12 @@ export class EpubDownloader extends BaseDownloader {
       // Download inline images, save them inside the zip, and point xhtml links to local files
       segmentHtml = await this.processAndDownloadImages(segmentHtml, label);
 
-      // Inject the link to stylesheet in the xhtml head
-      const finalHtml = this.linkStylesheet(segmentHtml, label);
+      // Wrap in a valid XHTML structure
+      const finalHtml = this.toValidXhtml(segmentHtml, label, chapterTitle || label);
 
       const displayTitle = chapterTitle && chapterTitle !== "Untitled" ? ` (${chapterTitle})` : "";
-      logger.progress(i + 1, total, `Saved segment ${label}${displayTitle}`);
+      logger.progress(i + 1, total, t("saved_segment", { label, title: displayTitle }));
+      this.options.onProgress?.(i + 1, total, t("saved_segment", { label, title: displayTitle }));
 
       return {
         label,
@@ -265,18 +262,18 @@ export class EpubDownloader extends BaseDownloader {
    * Core download runner for EPUB.
    */
   async run(): Promise<void> {
-    logger.info("Fetching book details...");
+    logger.info(t("fetching_details"));
     const html = await this.getBookHtml();
     const aesKey = this.getKey(html);
     const manifest = await this.getManifest();
     const metadata = manifest.metadata;
 
     if (!manifest.segment || manifest.segment.length === 0) {
-      throw new Error("This book does not contain reflowable text segments (EPUB format is unavailable). Try downloading as PDF.");
+      throw new Error(t("no_segments"));
     }
 
     if (metadata.preview && metadata.preview !== "full") {
-      throw new Error(`The book is in preview mode ('${metadata.preview}'). Please refresh or update your cookies in cookies.txt to download the full book.`);
+      throw new Error(t("preview_mode", { preview: metadata.preview }));
     }
 
     const missingSegments = manifest.segment.filter((s) => !s.link);
@@ -285,7 +282,7 @@ export class EpubDownloader extends BaseDownloader {
       const listStr = logger.showDebug
         ? ` List of missing segments: [${missingSegments.map(s => s.label).join(", ")}].`
         : "";
-      logger.warn(`Could not find a download link for ${missingSegments.length} text segments (${pct}% missing, total: ${manifest.segment.length}).${listStr} You might need to update your cookies.`);
+      logger.warn(t("missing_segments", { count: missingSegments.length, pct, total: manifest.segment.length }) + listStr);
     }
 
     const title = metadata.title || metadata.volume_title || "Untitled";
@@ -294,7 +291,7 @@ export class EpubDownloader extends BaseDownloader {
     const outputPath = path.join(this.options.outputDir, epubFilename);
 
     if (fs.existsSync(outputPath)) {
-      logger.success(`Book already exists in downloads: ${outputPath}`);
+      logger.success(t("book_exists", { path: outputPath }));
       return;
     }
 
@@ -304,12 +301,12 @@ export class EpubDownloader extends BaseDownloader {
     const segments = manifest.segment;
     const language = manifest.language || "en";
 
-    logger.step(`Processing book: ${title}`);
-    logger.info(`Authors     : ${Array.isArray(authors) ? authors.join(", ") : authors}`);
-    logger.info(`Published   : ${pub_date}`);
-    logger.info(`Segments    : ${segments.length}`);
-    logger.info(`Publisher   : ${publisher}`);
-    logger.info(`Language    : ${language}`);
+    logger.step(t("processing_book", { title }));
+    logger.info(`${t("authors")}: ${Array.isArray(authors) ? authors.join(", ") : authors}`);
+    logger.info(`${t("published")}: ${pub_date}`);
+    logger.info(`${t("segments")}: ${segments.length}`);
+    logger.info(`${t("publisher")}: ${publisher}`);
+    logger.info(`${t("language")}: ${language}`);
 
     // Reset images cache
     this.epubImages = [];
@@ -317,7 +314,7 @@ export class EpubDownloader extends BaseDownloader {
     // Try downloading the cover
     const cover = await this.downloadCover();
 
-    logger.step(`Downloading and decrypting ${segments.length} text segments...`);
+    logger.step(t("downloading_segments", { count: segments.length }));
 
     const chapters: Chapter[] = [];
 
@@ -333,7 +330,7 @@ export class EpubDownloader extends BaseDownloader {
     }
     logger.clearProgress();
 
-    logger.step("Assembling EPUB book archive...");
+    logger.step(t("assembling_epub"));
 
     const epubMetadata = {
       title,
@@ -350,11 +347,11 @@ export class EpubDownloader extends BaseDownloader {
 
     await buildEpub(outputPath, epubMetadata, chapters, cover, this.epubImages);
 
-    logger.success(`EPUB saved successfully: ${outputPath}`);
+    logger.success(t("epub_saved", { path: outputPath }));
 
     // Cleanup temporary directory
     try {
-      logger.info("Cleaning up temporary files...");
+      logger.info(t("cleanup_temp"));
       if (fs.existsSync(this.bookTempDir)) {
         fs.rmSync(this.bookTempDir, { recursive: true, force: true });
       }

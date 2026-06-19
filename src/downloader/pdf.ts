@@ -6,6 +6,7 @@ import { decryptPage } from "../utils/crypto";
 import { logger } from "../utils/logger";
 import { GoogleBookMetadata, GoogleBookPageManifest, GoogleBookTocEntry } from "../types";
 import { safeName, unescapeHtml, delay } from "../utils/helpers";
+import { t } from "../utils/i18n";
 
 export class PdfDownloader extends BaseDownloader {
   private cachedFiles: Set<string> = new Set();
@@ -95,7 +96,7 @@ export class PdfDownloader extends BaseDownloader {
     pdfDoc.setCreationDate(new Date());
 
     const total = imagePaths.length;
-    logger.step(`Merging ${total} pages into PDF...`);
+    logger.step(t("merging_pages", { count: total }));
 
     for (let i = 0; i < total; i++) {
       const imagePath = imagePaths[i];
@@ -114,7 +115,8 @@ export class PdfDownloader extends BaseDownloader {
           height: image.height,
         });
 
-        logger.progress(i + 1, total, `Merging page ${path.basename(imagePath)}`);
+        logger.progress(i + 1, total, t("merging_page_file", { file: path.basename(imagePath) }));
+        this.options.onProgress?.(i + 1, total, t("merging_page_file", { file: path.basename(imagePath) }));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         logger.error(`\nFailed to embed page ${i + 1} (${imagePath}): ${msg}`);
@@ -165,14 +167,14 @@ export class PdfDownloader extends BaseDownloader {
 
     const tocPath = path.join(this.options.outputDir, `${safeName(title)}_TOC.txt`);
     fs.writeFileSync(tocPath, formattedToc);
-    logger.info(`Table of contents saved to: ${tocPath}`);
+    logger.info(t("toc_saved", { path: tocPath }));
   }
 
   /**
    * Core download runner for PDF.
    */
   async run(): Promise<void> {
-    logger.info("Fetching book details...");
+    logger.info(t("fetching_details"));
     const html = await this.getBookHtml();
     const aesKey = this.getKey(html);
     const manifest = await this.getManifest();
@@ -180,11 +182,11 @@ export class PdfDownloader extends BaseDownloader {
     const toc = this.getToc(html);
 
     if (!manifest.page || manifest.page.length === 0) {
-      throw new Error("This book does not contain scanned pages (PDF format is unavailable). Try downloading as EPUB.");
+      throw new Error(t("no_scanned_pages"));
     }
 
     if (metadata.preview && metadata.preview !== "full") {
-      throw new Error(`The book is in preview mode ('${metadata.preview}'). Please refresh or update your cookies in cookies.txt to download the full book.`);
+      throw new Error(t("preview_mode", { preview: metadata.preview }));
     }
 
     const missingPages = manifest.page.filter((p) => !p.src);
@@ -193,7 +195,7 @@ export class PdfDownloader extends BaseDownloader {
       const listStr = logger.showDebug
         ? ` List of missing pages: [${missingPages.map((p) => p.pid).join(", ")}].`
         : "";
-      logger.warn(`Could not find a download link for ${missingPages.length} pages (${pct}% missing, total: ${manifest.page.length}).${listStr} You might need to update your cookies.`);
+      logger.warn(t("missing_links", { count: missingPages.length, pct, total: manifest.page.length }) + listStr);
     }
 
     // Populate existing cached files
@@ -205,7 +207,7 @@ export class PdfDownloader extends BaseDownloader {
     const outputPath = path.join(this.options.outputDir, pdfFilename);
 
     if (fs.existsSync(outputPath)) {
-      logger.success(`Book already exists in downloads: ${outputPath}`);
+      logger.success(t("book_exists", { path: outputPath }));
       return;
     }
 
@@ -215,19 +217,19 @@ export class PdfDownloader extends BaseDownloader {
     const num_pages = metadata.num_pages || manifest.page?.length || 0;
     let pages = manifest.page;
 
-    logger.step(`Processing book: ${title}`);
-    logger.info(`Authors     : ${Array.isArray(authors) ? authors.join(", ") : authors}`);
-    logger.info(`Published   : ${pub_date}`);
-    logger.info(`Total Pages : ${num_pages}`);
-    logger.info(`Publisher   : ${publisher}`);
+    logger.step(t("processing_book", { title }));
+    logger.info(`${t("authors")}: ${Array.isArray(authors) ? authors.join(", ") : authors}`);
+    logger.info(`${t("published")}: ${pub_date}`);
+    logger.info(`${t("total_pages")}: ${num_pages}`);
+    logger.info(`${t("publisher")}: ${publisher}`);
 
     // Handle RTL pages layout if specified in manifest
     if (manifest.is_right_to_left) {
-      logger.warn("Book is marked as right-to-left (RTL). Adjusting page pairs order.");
+      logger.warn(t("rtl_adjust"));
       pages = this.adjustRtlPages(pages);
     }
 
-    logger.step(`Downloading ${pages.length} pages...`);
+    logger.step(t("downloading_pages", { count: pages.length }));
 
     const imagePaths: string[] = [];
 
@@ -236,7 +238,7 @@ export class PdfDownloader extends BaseDownloader {
       const { pid, src, order } = page;
       if (!src) {
         if (!logger.showDebug) process.stdout.write("\n");
-        logger.info(`[${i + 1}/${pages.length}] Skipped page ${pid} (missing link)`);
+        logger.info(`[${i + 1}/${pages.length}] ` + t("skipped_page", { pid }));
         continue;
       }
 
@@ -249,7 +251,8 @@ export class PdfDownloader extends BaseDownloader {
       );
       imagePaths.push(imagePath);
       
-      logger.progress(i + 1, pages.length, `Saved page ${pid}`);
+      logger.progress(i + 1, pages.length, t("saved_page", { pid }));
+      this.options.onProgress?.(i + 1, pages.length, t("saved_page", { pid }));
 
       if (this.options.pace > 0 && i < pages.length - 1) {
         await delay(this.options.pace);
@@ -258,7 +261,7 @@ export class PdfDownloader extends BaseDownloader {
     logger.clearProgress();
 
     const pdfPath = await this.createPdf(imagePaths, metadata);
-    logger.success(`PDF saved successfully: ${pdfPath}`);
+    logger.success(t("pdf_saved", { path: pdfPath }));
 
     // Save Table of Contents if available
     if (toc && toc.length > 0) {
@@ -267,7 +270,7 @@ export class PdfDownloader extends BaseDownloader {
 
     // Cleanup temporary directory
     try {
-      logger.info("Cleaning up temporary files...");
+      logger.info(t("cleanup_temp"));
       if (fs.existsSync(this.bookTempDir)) {
         fs.rmSync(this.bookTempDir, { recursive: true, force: true });
       }

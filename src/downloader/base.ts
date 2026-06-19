@@ -13,6 +13,7 @@ export interface DownloaderOptions {
   verbose?: boolean;
   interactive?: boolean;
   manifest?: GoogleBookManifest;
+  onProgress?: (current: number, total: number, message: string) => void;
 }
 
 export abstract class BaseDownloader {

@@ -1,5 +1,5 @@
 {
-  "name": "google-play-book-downloader",
+  "name": "google-play-books-downloader",
   "version": "2.0.0",
   "type": "module",
   "main": "src/cli.ts",
@@ -8,10 +8,11 @@
   },
   "scripts": {
     "start": "bun run src/cli.ts",
+    "server": "bun run src/server.ts",
     "test": "bun test"
   },
   "keywords": [],
-  "author": "",
+  "author": "tivp",
   "license": "ISC",
   "description": "Download Google Play Books as PDF or EPUB using Bun and TypeScript",
   "dependencies": {

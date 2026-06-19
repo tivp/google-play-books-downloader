@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Play Books Downloader</title>
+    <style>
+        /* --- FUENTE PRODUCT SANS --- */
+        @font-face {
+            font-family: 'Product Sans';
+            font-style: normal;
+            font-weight: 400;
+            src: local('Open Sans'), local('Arial'), url(https://fonts.gstatic.com/s/product_sans/v5/HYvgU2fE2nRJvZ5JFAumwegdm0LZdjqr5-oayXSOefg.woff2) format('woff2');
+        }
+
+        /* --- VARIABLES DE COLOR (LIGHT/DARK) --- */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #202124;
+            --panel-bg: #f8f9fa;
+            --box-bg: #ffffff;
+            --box-shadow: rgba(60,64,67,0.15);
+            --border-color: #dadce0;
+            --hover-bg: #e8f0fe;
+            --input-bg: #ffffff;
+            --cat-header-bg: #f1f3f4;
+            --cat-header-text: #5f6368;
+            --switch-off: #ccc;
+            --switch-on: #1a73e8;
+            --modal-overlay: rgba(32,33,36,0.6);
+            --separator-color: #dfe1e5;
+            --toast-bg: #d93025;
+            --toast-text: #fff;
+            
+            --btn-primary: #1a73e8;
+            --btn-primary-hover: #1557b0;
+            --btn-primary-active: #174ea6; 
+            --btn-text: #ffffff;
+            
+            --color-success: #1b8057;
+            --color-success-bg: #e6f4ea;
+            --color-error: #c5221f;
+            --color-error-bg: #fce8e6;
+            --color-info: #1a73e8;
+            --color-info-bg: #e8f0fe;
+            --color-warning: #b06000;
+            --color-warning-bg: #fef7e0;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #202124;
+            --text-color: #e8eaed;
+            --panel-bg: #303134;
+            --box-bg: #303134;
+            --box-shadow: rgba(0,0,0,0.3);
+            --border-color: #5f6368;
+            --hover-bg: #3c4043;
+            --input-bg: #303134;
+            --cat-header-bg: #3c4043;
+            --cat-header-text: #e8eaed;
+            --switch-off: #5f6368;
+            --switch-on: #8ab4f8;
+            --modal-overlay: rgba(0,0,0,0.8);
+            --separator-color: #5f6368;
+            --toast-bg: #f28b82;
+            --toast-text: #202124;
+            
+            --btn-primary: #8ab4f8;
+            --btn-primary-hover: #aecbfa;
+            --btn-primary-active: #d2e3fc; 
+            --btn-text: #202124;
+            
+            --color-success: #81c995;
+            --color-success-bg: rgba(129, 201, 149, 0.15);
+            --color-error: #f28b82;
+            --color-error-bg: rgba(242, 139, 130, 0.15);
+            --color-info: #8ab4f8;
+            --color-info-bg: rgba(138, 180, 248, 0.15);
+            --color-warning: #fdd663;
+            --color-warning-bg: rgba(253, 214, 99, 0.15);
+        }
+
+        /* --- BASE --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        a { text-decoration: none; color: inherit; cursor: pointer; }
+        
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 15px 20px;
+            height: 60px;
+        }
+        .header-links-group { display: flex; align-items: center; }
+        .header-link { font-size: 13px; opacity: 0.8; font-weight: 500; }
+        .header-link:hover { opacity: 1; text-decoration: underline; }
+
+        /* SEPARADOR VERTICAL */
+        .header-separator {
+            width: 1px;
+            height: 24px;
+            background-color: var(--separator-color);
+            margin: 0 15px;
+        }
+        
+        /* BOTÓN DE AJUSTES */
+        .settings-btn {
+            width: 32px; height: 32px;
+            background-image: linear-gradient(135deg, #1a365d, #2a4365);
+            border-radius: 50%; 
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .settings-btn:hover { transform: rotate(45deg); }
+        .settings-btn svg { fill: white; width: 20px; height: 20px; }
+
+        /* --- SIDEBAR CONFIG --- */
+        .sidebar-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.15); z-index: 998;
+            opacity: 0; visibility: hidden; transition: 0.3s;
+        }
+        .sidebar-overlay.open { opacity: 1; visibility: visible; }
+
+        .settings-panel {
+            position: fixed; top: 0; right: -300px; width: 300px; height: 100%;
+            background-color: var(--box-bg);
+            box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+            z-index: 999;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
+            display: flex; flex-direction: column;
+            overflow-y: auto;
+        }
+        .settings-panel.open { right: 0; }
+        
+        .panel-header { font-family: 'Product Sans', sans-serif; font-size: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 14px; }
+
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--switch-off); transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--switch-on); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* --- MODAL ESTÉTICO --- */
+        .modal-mate-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--modal-overlay);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+        .modal-mate-overlay.visible { opacity: 1; visibility: visible; }
+
+        .modal-content {
+            background-color: var(--box-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 380px;
+            width: 90%;
+            position: relative;
+            transform: scale(0.95);
+            transition: transform 0.2s;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+        }
+        .modal-mate-overlay.visible .modal-content { transform: scale(1); }
+
+        .modal-close {
+            position: absolute; top: 10px; right: 15px;
+            font-size: 24px; cursor: pointer; color: var(--text-color); opacity: 0.5;
+        }
+        .modal-close:hover { opacity: 1; }
+
+        .modal-title { font-family: 'Product Sans', sans-serif; font-size: 18px; margin-bottom: 15px; color: var(--text-color); }
+        .modal-text { font-size: 14px; line-height: 1.6; margin-bottom: 20px; color: var(--text-color); }
+        
+        /* --- ESTILOS ENLACE AUTOR --- */
+        .author-link:link { color: #1a0dab; text-decoration: none; font-weight: bold; transition: color 0.15s; }
+        .author-link:link:hover { color: #1152a8; text-decoration: none; } 
+        .author-link:link:active { color: #0b327b; text-decoration: none; } 
+        
+        .author-link:visited { color: #f57c00; text-decoration: none; font-weight: bold; transition: color 0.15s; }
+        .author-link:visited:hover { color: #e65100; text-decoration: none; } 
+        .author-link:visited:active { color: #bf360c; text-decoration: none; } 
+
+        [data-theme="dark"] .author-link:link { color: #8ab4f8; }
+        [data-theme="dark"] .author-link:link:hover { color: #aecbfa; } 
+        [data-theme="dark"] .author-link:link:active { color: #d2e3fc; } 
+        
+        [data-theme="dark"] .author-link:visited { color: #ffb74d; }
+        [data-theme="dark"] .author-link:visited:hover { color: #ffcc80; } 
+        [data-theme="dark"] .author-link:visited:active { color: #ffe0b2; } 
+
+        .contact-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); }
+        .contact-label { font-size: 12px; color: #70757a; margin-bottom: 10px; }
+        
+        .social-link {
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px;
+            margin: 8px 0; color: var(--text-color); font-size: 14px;
+            padding: 8px 15px;
+            border-radius: 6px; transition: background 0.2s;
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+        .social-link:hover { background-color: var(--hover-bg); border-color: var(--border-color); }
+        .social-icon { width: 18px; height: 18px; fill: currentColor; }
+
+        /* --- NOTIFICACIÓN (TOAST) --- */
+        .toast-notification {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #323232;
+            color: #ffffff;
+            padding: 14px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0;
+            visibility: hidden;
+            transition: transform 0.25s cubic-bezier(0, 0, 0.2, 1), opacity 0.25s cubic-bezier(0, 0, 0.2, 1), visibility 0.25s cubic-bezier(0, 0, 0.2, 1);
+            z-index: 3000;
+            box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 500px;
+            width: calc(100% - 48px);
+            box-sizing: border-box;
+        }
+        .toast-notification.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast-notification svg {
+            fill: #ffffff;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .toast-notification.toast-success {
+            border-left: 4px solid #34a853;
+        }
+        .toast-notification.toast-success svg {
+            fill: #34a853;
+        }
+        .toast-notification.toast-error {
+            border-left: 4px solid #ea4335;
+        }
+        .toast-notification.toast-error svg {
+            fill: #ea4335;
+        }
+        
+        [data-theme="dark"] .toast-notification {
+            background-color: #202124;
+            color: #e8eaed;
+            border: 1px solid #5f6368;
+        }
+        [data-theme="dark"] .toast-notification.toast-success {
+            border-left: 4px solid #81c995;
+        }
+        [data-theme="dark"] .toast-notification.toast-success svg {
+            fill: #81c995;
+        }
+        [data-theme="dark"] .toast-notification.toast-error {
+            border-left: 4px solid #f28b82;
+        }
+        [data-theme="dark"] .toast-notification.toast-error svg {
+            fill: #f28b82;
+        }
+
+        /* --- MAIN --- */
+        main { display: flex; flex-direction: column; align-items: center; padding-top: 50px; flex-grow: 1; width: 100%; }
+
+        /* --- LOGO --- */
+        .logo-container { position: relative; text-align: center; margin-bottom: 25px; cursor: pointer; }
+        .logo-text { font-family: 'Product Sans', sans-serif; font-size: 50px; letter-spacing: -1px; font-weight: 500; line-height: 1.2; user-select: none; }
+        .c1 { color: #4285f4; } .c2 { color: #ea4335; } .c3 { color: #fbbc05; } .c4 { color: #4285f4; } .c5 { color: #34a853; } .c6 { color: #ea4335; } .c7 { color: #4285f4; } .c8 { color: #fbbc05; } .c9 { color: #ea4335; }
+        
+        .subtitle-badge { 
+            margin-top: 5px;
+            color: #70757a; 
+            font-family: 'Product Sans', sans-serif; 
+            font-size: 16px; 
+            font-weight: 400;
+        }
+        [data-theme="dark"] .subtitle-badge { color: #9aa0a6; }
+
+        /* --- SEARCH BAR --- */
+        .search-wrapper { width: 100%; padding: 0 20px; display: flex; flex-direction: column; align-items: center; }
+        .search-container { width: 100%; max-width: 584px; position: relative; }
+        .search-bar { width: 100%; height: 46px; border: 1px solid var(--border-color); border-radius: 24px; display: flex; align-items: center; padding: 0 14px; margin: 0 auto; transition: all 0.2s; background: var(--input-bg); }
+        .search-bar:hover, .search-bar.focus { background-color: var(--input-bg); box-shadow: 0 1px 6px var(--box-shadow); border-color: transparent; }
+        .search-input { flex-grow: 1; border: none; outline: none; font-size: 16px; height: 100%; background: transparent; color: var(--text-color); font-family: arial, sans-serif; }
+        .search-icon { margin-right: 12px; fill: #9aa0a6; width: 20px; height: 20px; }
+
+        .format-select-container {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--cat-header-text);
+        }
+
+        .select-input {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-color);
+            outline: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: var(--border-color) 0.2s;
+        }
+        .select-input:hover { border-color: #9aa0a6; }
+
+        /* --- BOTONES --- */
+        .buttons-container { margin-top: 25px; display: flex; justify-content: center; gap: 12px; margin-bottom: 35px; flex-wrap: wrap;}
+        .btn { background-color: var(--panel-bg); border: 1px solid transparent; border-radius: 4px; color: var(--text-color); font-size: 14px; padding: 0 16px; height: 36px; cursor: pointer; user-select: none; font-weight: 500; }
+        .btn:hover { box-shadow: 0 1px 1px rgba(0,0,0,0.1); border: 1px solid var(--border-color); color: var(--text-color); }
+        .btn-primary-action { background-color: var(--btn-primary); color: var(--btn-text); }
+        .btn-primary-action:hover { background-color: var(--btn-primary-hover); border-color: transparent; color: var(--btn-text); }
+        .btn-primary-action:active { background-color: var(--btn-primary-active); }
+
+        /* --- DOWNLOADS DIRECTORY GRID --- */
+        #directory-container { width: 100%; max-width: 800px; padding: 0 20px; margin-bottom: 40px; display: flex; flex-direction: column; gap: 20px; }
+        
+        .category-box { background: var(--box-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 1px 3px var(--box-shadow); transition: box-shadow 0.2s; width: 100%; }
+        .category-box:hover { box-shadow: 0 4px 10px var(--box-shadow); }
+        .cat-header { padding: 12px 16px; font-weight: bold; font-size: 12px; color: var(--cat-header-text); text-transform: uppercase; letter-spacing: 0.8px; background-color: var(--cat-header-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+        .cat-list { padding: 8px; display: flex; flex-direction: column; gap: 10px; }
+        
+        /* Queue Item Styles */
+        .download-row {
+            display: flex;
+            flex-direction: column;
+            padding: 12px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--panel-bg);
+            transition: all 0.2s;
+            gap: 10px;
+        }
+        .download-row:hover {
+            background-color: var(--hover-bg);
+            border-color: rgba(26, 115, 232, 0.4);
+        }
+
+        .row-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .book-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .book-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--text-color);
+            line-height: 1.4;
+        }
+
+        .book-authors {
+            font-size: 13px;
+            color: var(--cat-header-text);
+        }
+
+        .badges-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .tag {
+            font-size: 11px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+
+        .tag-format {
+            background-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .tag-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tag-pending { background-color: var(--color-warning-bg); color: var(--color-warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .tag-downloading { background-color: var(--color-info-bg); color: var(--color-info); border: 1px solid rgba(26, 115, 232, 0.2); }
+        .tag-merging { background-color: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.2); }
+        .tag-completed { background-color: var(--color-success-bg); color: var(--color-success); border: 1px solid rgba(27, 128, 87, 0.2); }
+        .tag-failed { background-color: var(--color-error-bg); color: var(--color-error); border: 1px solid rgba(197, 34, 31, 0.2); }
+
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+        .tag-downloading .pulse-dot, .tag-merging .pulse-dot {
+            animation: blink 1.2s infinite alternate;
+        }
+
+        @keyframes blink {
+            from { opacity: 0.4; }
+            to { opacity: 1; }
+        }
+
+        /* Progress controls inside item */
+        .progress-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background-color: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--btn-primary);
+            width: 0%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--cat-header-text);
+        }
+
+        .progress-percent {
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        /* Download File Button */
+        .download-row-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            align-self: flex-end;
+            padding: 6px 16px;
+            background-color: var(--btn-primary);
+            color: var(--btn-text);
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.15s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .download-row-btn:hover { background-color: var(--btn-primary-hover); }
+        .download-row-btn:active { background-color: var(--btn-primary-active); }
+        .download-row-btn svg { fill: currentColor; width: 16px; height: 16px; }
+
+        .error-message-block {
+            font-size: 12px;
+            color: var(--color-error);
+            background-color: var(--color-error-bg);
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(197, 34, 31, 0.1);
+            word-break: break-word;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--cat-header-text);
+            font-size: 14px;
+            border: 1px dashed var(--border-color);
+            border-radius: 6px;
+            background-color: var(--panel-bg);
+        }
+
+        /* FOOTER */
+        footer { background: var(--cat-header-bg); color: #70757a; font-size: 14px; margin-top: auto; border-top: 1px solid var(--border-color); padding: 15px 30px; display: flex; justify-content: flex-start; }
+        .about-link { cursor: pointer; color: #70757a; transition: color 0.2s; }
+        .about-link:hover { color: var(--text-color); text-decoration: underline; }
+
+        .spinner-icon {
+            animation: spin 1s linear infinite;
+            width: 16px;
+            height: 16px;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- OVERLAY SIDEBAR -->
+    <div class="sidebar-overlay" id="overlay" onclick="toggleSettings()"></div>
+    
+    <!-- NOTIFICACIÓN (TOAST CON SVG) -->
+    <div class="toast-notification" id="toast">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
+        </svg>
+        <span id="toast-text-content">Mensaje de notificación.</span>
+    </div>
+    
+    <!-- PANEL DE CONFIGURACIÓN -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="panel-header" id="title-settings">Configuración</div>
+        
+        <div class="setting-item">
+            <span id="setting-dark">Modo Oscuro</span>
+            <label class="switch">
+                <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <!-- Help Section for cookies.txt -->
+        <div style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+            <div class="panel-header" style="font-size: 15px; border: none; margin-bottom: 10px; padding: 0;" id="help-header">¿Necesitas ayuda con cookies.txt?</div>
+            <div style="font-size: 12px; line-height: 1.5; color: var(--cat-header-text);" id="help-content">
+                Para descargar libros comprados, la app necesita tus credenciales. Sigue estos pasos:<br><br>
+                1. Instala la extensión <a href="https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank" style="color: var(--btn-primary); text-decoration: underline;">Get cookies.txt LOCALLY</a> en Chrome.<br>
+                2. Ve a Google Play Books, inicia sesión y abre la extensión.<br>
+                3. Haz clic en <strong>Export</strong> para descargar <code>cookies.txt</code>.<br>
+                4. Guarda el archivo en la carpeta principal del programa en tu computadora.
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SOBRE PLAYBOOK DOWNLOADER -->
+    <div class="modal-mate-overlay" id="about-modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeAbout()">&times;</span>
+            <div class="modal-title" id="about-title">Google Play Books Downloader</div>
+            <p class="modal-text" id="about-desc">
+                Una herramienta moderna para descargar tus libros adquiridos en Google Play Books de manera local y concurrente.
+            </p>
+            <div class="contact-section">
+                <div class="contact-label" id="about-footer">Desarrollado y refinado por @tivp</div>
+                <a href="https://github.com/tivp" target="_blank" class="social-link">
+                    <svg class="social-icon" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    github.com/tivp
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- CABECERA -->
+    <header>
+        <div class="header-links-group" id="header-links">
+            <a class="header-link" id="nav-books" href="https://play.google.com/books" target="_blank">Mis Libros de Play Books</a>
+        </div>
+        
+        <!-- SEPARADOR -->
+        <div class="header-separator"></div>
+
+        <div class="settings-btn" onclick="toggleSettings()" title="Configuración">
+            <svg viewBox="0 0 24 24">
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+            </svg>
+        </div>
+    </header>
+
+    <!-- CONTENIDO -->
+    <main>
+        <div class="logo-container" onclick="location.reload()">
+            <div class="logo-text">
+                <span class="c1">G</span><span class="c2">o</span><span class="c3">o</span><span class="c4">g</span><span class="c5">l</span><span class="c6">e</span> <span class="c1">P</span><span class="c2">l</span><span class="c3">a</span><span class="c4">y</span> <span class="c5">B</span><span class="c6">o</span><span class="c7">o</span><span class="c8">k</span><span class="c9">s</span> <span class="c1">D</span><span class="c2">o</span><span class="c3">w</span><span class="c4">n</span><span class="c5">l</span><span class="c6">o</span><span class="c7">a</span><span class="c8">d</span><span class="c9">e</span><span class="c1">r</span>
+            </div>
+            <div class="subtitle-badge" id="subtitle-badge">Descarga en PDF o EPUB libros de Google Play Books</div>
+        </div>
+
+        <div class="search-wrapper">
+            <div class="search-container">
+                <div class="search-bar" id="search-bar">
+                    <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+                    <input type="text" class="search-input" id="search-input" placeholder="Introduce la URL del lector de Google Play Books o el ID del libro" title="Buscar">
+                </div>
+            </div>
+
+            <div class="format-select-container">
+                <span id="format-label-text">Formato de salida:</span>
+                <select id="format-select" class="select-input">
+                    <option value="auto" id="opt-auto">Auto-detectar formato óptimo</option>
+                    <option value="pdf" id="opt-pdf">PDF (Páginas escaneadas)</option>
+                    <option value="epub" id="opt-epub">EPUB (Texto fluido)</option>
+                </select>
+            </div>
+
+            <div class="buttons-container">
+                <button class="btn btn-primary-action" id="btn-search" onclick="startDownload()">Iniciar Descarga</button>
+                <button class="btn" id="btn-clear-history" onclick="clearLocalHistory()">Limpiar completados</button>
+            </div>
+        </div>
+
+        <div id="directory-container">
+            <div class="category-box">
+                <div class="cat-header">
+                    <span id="title-queue">Cola de Descargas</span>
+                </div>
+                <div class="cat-list" id="downloads-list">
+                    <!-- Empty state -->
+                    <div class="empty-state" id="empty-state">
+                        Ingresa una URL arriba para comenzar la descarga.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <a class="about-link" id="about-link" onclick="openAbout()">Sobre Google Play Books Downloader</a>
+    </footer>
+
+    <script>
+        const API_URL = '';
+        let pollingInterval = null;
+
+        const UI_TEXTS = {
+            ES: {
+                nav_books: "Mis Libros de Play Books",
+                title_settings: "Configuración",
+                setting_dark: "Modo Oscuro",
+                about_title: "Google Play Books Downloader",
+                about_desc: "Una herramienta moderna para descargar tus libros adquiridos en Google Play Books de manera local y concurrente.",
+                about_footer: "Desarrollado y refinado por @tivp",
+                subtitle: "Descarga en PDF o EPUB libros de Google Play Books",
+                placeholder: "Introduce la URL del lector de Google Play Books o el ID del libro",
+                format_label: "Formato de salida:",
+                opt_auto: "Auto-detectar formato óptimo",
+                opt_pdf: "PDF (Páginas escaneadas)",
+                opt_epub: "EPUB (Texto fluido)",
+                btn_start: "Iniciar Descarga",
+                btn_clear: "Limpiar completados",
+                title_queue: "Cola de Descargas",
+                empty_state: "Ingresa una URL arriba para comenzar la descarga.",
+                help_header: "¿Necesitas ayuda con cookies.txt?",
+                help_content: `Para descargar libros comprados, la app necesita tus credenciales. Sigue estos pasos:<br><br>
+                    1. Instala la extensión <a href="https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank" style="color: var(--btn-primary); text-decoration: underline;">Get cookies.txt LOCALLY</a> en Chrome.<br>
+                    2. Ve a Google Play Books, inicia sesión y abre la extensión.<br>
+                    3. Haz clic en <strong>Export</strong> para descargar <code>cookies.txt</code>.<br>
+                    4. Guarda el archivo en la carpeta principal del programa en tu computadora.`
+            },
+            EN: {
+                nav_books: "My Play Books",
+                title_settings: "Settings",
+                setting_dark: "Dark Mode",
+                about_title: "Google Play Books Downloader",
+                about_desc: "A modern tool to download your Google Play Books locally and concurrently.",
+                about_footer: "Developed and refined by @tivp",
+                subtitle: "Download Google Play Books as PDF or EPUB",
+                placeholder: "Enter Google Play Books reader URL or Book ID",
+                format_label: "Output format:",
+                opt_auto: "Auto-detect optimal format",
+                opt_pdf: "PDF (Scanned pages)",
+                opt_epub: "EPUB (Reflowable text)",
+                btn_start: "Start Download",
+                btn_clear: "Clear completed",
+                title_queue: "Downloads Queue",
+                empty_state: "Enter a URL above to start downloading.",
+                help_header: "Need help with cookies.txt?",
+                help_content: `To download purchased books, the app needs your credentials. Follow these steps:<br><br>
+                    1. Install the <a href="https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank" style="color: var(--btn-primary); text-decoration: underline;">Get cookies.txt LOCALLY</a> extension in Chrome.<br>
+                    2. Go to Google Play Books, log in, and open the extension.<br>
+                    3. Click <strong>Export</strong> to download <code>cookies.txt</code>.<br>
+                    4. Save the file in the main folder of this program on your computer.`
+            }
+        };
+
+        const STATUS_LABELS = {
+            ES: {
+                pending: 'Pendiente',
+                downloading: 'Descargando',
+                merging: 'Procesando',
+                completed: 'Completado',
+                failed: 'Fallido'
+            },
+            EN: {
+                pending: 'Pending',
+                downloading: 'Downloading',
+                merging: 'Processing',
+                completed: 'Completed',
+                failed: 'Failed'
+            }
+        };
+
+        const MESSAGES = {
+            ES: {
+                enter_valid: "Por favor, ingresa una URL o un ID de libro válido.",
+                success_add: "¡Descarga agregada con éxito!",
+                error_add: "Error al iniciar la descarga",
+                connecting: "Iniciando...",
+                history_cleanup: "Las descargas finalizadas se limpian automáticamente del servidor tras 2 horas.",
+                loading_authors: "Obteniendo autores...",
+                unhandled_error: "Ocurrió un error inesperado.",
+                save: "Guardar"
+            },
+            EN: {
+                enter_valid: "Please enter a valid URL or Book ID.",
+                success_add: "Download added successfully!",
+                error_add: "Error starting download",
+                connecting: "Starting...",
+                history_cleanup: "Finished downloads are automatically cleared from the server after 2 hours.",
+                loading_authors: "Fetching authors...",
+                unhandled_error: "An unexpected error occurred.",
+                save: "Save"
+            }
+        };
+
+        function getLang() {
+            return (typeof APP_LANG !== 'undefined' ? APP_LANG : 'EN') === 'ES' ? 'ES' : 'EN';
+        }
+
+        function applyLanguage() {
+            const lang = getLang();
+            const texts = UI_TEXTS[lang];
+
+            document.getElementById('nav-books').textContent = texts.nav_books;
+            document.getElementById('title-settings').textContent = texts.title_settings;
+            document.getElementById('setting-dark').textContent = texts.setting_dark;
+            document.getElementById('about-title').textContent = texts.about_title;
+            document.getElementById('about-desc').textContent = texts.about_desc;
+            document.getElementById('about-footer').textContent = texts.about_footer;
+            document.getElementById('subtitle-badge').textContent = texts.subtitle;
+            document.getElementById('search-input').placeholder = texts.placeholder;
+            document.getElementById('format-label-text').textContent = texts.format_label;
+            
+            // Select options
+            document.getElementById('opt-auto').textContent = texts.opt_auto;
+            document.getElementById('opt-pdf').textContent = texts.opt_pdf;
+            document.getElementById('opt-epub').textContent = texts.opt_epub;
+            
+            document.getElementById('btn-search').textContent = texts.btn_start;
+            document.getElementById('btn-clear-history').textContent = texts.btn_clear;
+            document.getElementById('title-queue').textContent = texts.title_queue;
+            document.getElementById('empty-state').textContent = texts.empty_state;
+            document.getElementById('help-header').textContent = texts.help_header;
+            document.getElementById('help-content').innerHTML = texts.help_content;
+            document.getElementById('about-link').textContent = lang === 'ES' ? `Sobre ${texts.about_title}` : `About ${texts.about_title}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            applyLanguage();
+            fetchDownloads();
+            pollingInterval = setInterval(fetchDownloads, 1500);
+        });
+
+        // Config de barra de búsqueda
+        const searchInput = document.getElementById('search-input');
+        const searchBar = document.getElementById('search-bar');
+        searchInput.addEventListener('focus', () => searchBar.classList.add('focus'));
+        searchInput.addEventListener('blur', () => searchBar.classList.remove('focus'));
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') startDownload();
+        });
+
+        // NOTIFICACIÓN (TOAST DE BLOQUEO CON SVG)
+        function showToast(message, type = 'error') {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toast-text-content');
+            
+            toast.className = 'toast-notification';
+            if (type === 'success') {
+                toast.classList.add('toast-success');
+            } else if (type === 'error') {
+                toast.classList.add('toast-error');
+            }
+            
+            toastText.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // SETTINGS & MODALS
+        function toggleSettings() {
+            document.getElementById('settings-panel').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('open');
+        }
+
+        function openAbout() {
+            document.getElementById('about-modal').classList.add('visible');
+        }
+
+        function closeAbout() {
+            document.getElementById('about-modal').classList.remove('visible');
+        }
+
+        document.getElementById('about-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAbout();
+            }
+        });
+
+        function loadSettings() {
+            const isDark = localStorage.getItem('darkMode') === 'true';
+            document.getElementById('dark-mode-toggle').checked = isDark;
+            if(isDark) document.body.setAttribute('data-theme', 'dark');
+        }
+
+        function toggleDarkMode() {
+            const isChecked = document.getElementById('dark-mode-toggle').checked;
+            if(isChecked) document.body.setAttribute('data-theme', 'dark');
+            else document.body.removeAttribute('data-theme');
+            localStorage.setItem('darkMode', isChecked);
+        }
+
+
+
+        // LÓGICA DE BÚSQUEDA / DESCARGA
+        async function startDownload() {
+            const lang = getLang();
+            const msgs = MESSAGES[lang];
+            
+            const urlInput = document.getElementById('search-input');
+            const formatSelect = document.getElementById('format-select');
+            const btnSearch = document.getElementById('btn-search');
+            
+            const url = urlInput.value.trim();
+            const format = formatSelect.value;
+
+            if (!url) {
+                showToast(msgs.enter_valid);
+                return;
+            }
+
+            // Deshabilitar botones mientras se inicia
+            btnSearch.disabled = true;
+            const originalText = btnSearch.textContent;
+            btnSearch.innerHTML = `
+                <svg class="spinner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 8px;">
+                    <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-linecap="round"></circle>
+                </svg>
+                ${msgs.connecting}
+            `;
+
+            try {
+                const response = await fetch(`${API_URL}/api/download`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url, format }),
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || msgs.error_add);
+                }
+
+                showToast(msgs.success_add, 'success');
+                urlInput.value = ''; // limpiar barra
+                fetchDownloads(); // actualizar lista inmediatamente
+
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btnSearch.disabled = false;
+                btnSearch.textContent = originalText;
+            }
+        }
+
+        function getStatusBadgeClass(status) {
+            switch (status) {
+                case 'pending': return 'tag-pending';
+                case 'downloading': return 'tag-downloading';
+                case 'merging': return 'tag-merging';
+                case 'completed': return 'tag-completed';
+                case 'failed': return 'tag-failed';
+                default: return '';
+            }
+        }
+
+        function getStatusLabel(status) {
+            const lang = getLang();
+            return STATUS_LABELS[lang][status] || status;
+        }
+
+        function clearLocalHistory() {
+            const lang = getLang();
+            showToast(MESSAGES[lang].history_cleanup, "success");
+        }
+
+        // Renderizar un elemento en la cola de descarga
+        function renderTaskRow(task) {
+            const lang = getLang();
+            const msgs = MESSAGES[lang];
+            
+            const pct = task.total > 0 ? Math.round((task.current / task.total) * 100) : 0;
+            const badgeClass = getStatusBadgeClass(task.status);
+            const statusText = getStatusLabel(task.status);
+            const isProgressing = task.status === 'downloading' || task.status === 'merging';
+
+            let progressDisplay = '';
+            if (isProgressing || task.status === 'completed' || task.status === 'failed') {
+                progressDisplay = `
+                    <div class="progress-block">
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${task.status === 'completed' ? 100 : pct}%"></div>
+                        </div>
+                        <div class="progress-text-row">
+                            <span>${task.message}</span>
+                            <span class="progress-percent">${task.status === 'completed' ? '100%' : pct + '%'}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let actionButton = '';
+            if (task.status === 'completed') {
+                actionButton = `
+                    <a href="${API_URL}/api/download-file/${task.id}" class="download-row-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+                        </svg>
+                        ${msgs.save} ${task.format.toUpperCase()}
+                    </a>
+                `;
+            }
+
+            let errorDisplay = '';
+            if (task.status === 'failed' && task.error) {
+                errorDisplay = `
+                    <div class="error-message-block">
+                        <strong>Error:</strong> ${task.error}
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="download-row" id="task-${task.id}">
+                    <div class="row-top">
+                        <div class="book-details">
+                            <div class="book-title">${task.title}</div>
+                            <div class="book-authors">${task.authors || msgs.loading_authors}</div>
+                            <div class="badges-group">
+                                <span class="tag tag-format">${task.format}</span>
+                                <span class="tag tag-status ${badgeClass}">
+                                    <span class="pulse-dot"></span>
+                                    ${statusText}
+                                </span>
+                            </div>
+                        </div>
+                        ${actionButton}
+                    </div>
+                    ${progressDisplay}
+                    ${errorDisplay}
+                </div>
+            `;
+        }
+
+        // Fetch lista de descargas
+        async function fetchDownloads() {
+            try {
+                const response = await fetch(`${API_URL}/api/downloads`);
+                if (!response.ok) throw new Error('Error al conectar con la base de datos de descargas');
+
+                const downloads = await response.json();
+                const listContainer = document.getElementById('downloads-list');
+                const emptyState = document.getElementById('empty-state');
+
+                if (downloads.length === 0) {
+                    const rows = listContainer.querySelectorAll('.download-row');
+                    rows.forEach(el => el.remove());
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+
+                // Remover filas huérfanas
+                const activeIds = new Set(downloads.map(t => t.id));
+                const currentElements = listContainer.querySelectorAll('.download-row');
+                currentElements.forEach(el => {
+                    const id = el.id.replace('task-', '');
+                    if (!activeIds.has(id)) el.remove();
+                });
+
+                // Insertar/Actualizar filas
+                downloads.forEach((task, index) => {
+                    const existingEl = document.getElementById(`task-${task.id}`);
+                    const rowHtml = renderTaskRow(task);
+
+                    if (existingEl) {
+                        const oldStatus = existingEl.getAttribute('data-status');
+                        const oldProgress = existingEl.getAttribute('data-progress');
+                        const oldMessage = existingEl.getAttribute('data-message');
+
+                        const newStatus = task.status;
+                        const newProgress = `${task.current}/${task.total}`;
+                        const newMessage = task.message;
+
+                        if (oldStatus !== newStatus || oldProgress !== newProgress || oldMessage !== newMessage) {
+                            existingEl.outerHTML = rowHtml;
+                            const newEl = document.getElementById(`task-${task.id}`);
+                            newEl.setAttribute('data-status', newStatus);
+                            newEl.setAttribute('data-progress', newProgress);
+                            newEl.setAttribute('data-message', newMessage);
+                        }
+                    } else {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = rowHtml.trim();
+                        const newEl = tempDiv.firstChild;
+                        newEl.setAttribute('data-status', task.status);
+                        newEl.setAttribute('data-progress', `${task.current}/${task.total}`);
+                        newEl.setAttribute('data-message', task.message);
+
+                        if (index === 0) {
+                            listContainer.insertBefore(newEl, listContainer.firstChild === emptyState ? null : listContainer.firstChild);
+                        } else {
+                            listContainer.appendChild(newEl);
+                        }
+                    }
+                });
+
+            } catch (err) {
+                console.error("Fallo al actualizar descargas: ", err);
+            }
+        }
+    </script>
+</body>
+</html>
