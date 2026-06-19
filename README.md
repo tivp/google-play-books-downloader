@@ -7,8 +7,7 @@ Un script de línea de comandos para descargar y desencriptar libros comprados e
 ## ✨ Resumen
 Un script moderno en TypeScript para Bun diseñado para descargar tus libros de Google Play Books comprados, desencriptarlos y compilarlos localmente en archivos PDF o EPUB listos para su lectura sin conexión.
 
-> [!NOTE]
-> **Origen del proyecto**: Este proyecto es un *fork* desarrollado a partir del código original de [google-play-book-downloader de kuchingneko28](https://github.com/kuchingneko28/google-play-book-downloader) con el fin de mejorarlo, solucionar diversos fallos (bugs), e implementar soporte completo en español y una cómoda interfaz gráfica web interactiva.
+> **Nota**: **Origen del proyecto**: Este proyecto es un *fork* desarrollado a partir del código original de [google-play-book-downloader de kuchingneko28](https://github.com/kuchingneko28/google-play-book-downloader) con el fin de mejorarlo, solucionar diversos fallos (bugs), e implementar soporte completo en español y una cómoda interfaz gráfica web interactiva.
 
 ### Características
 * **Desencriptación rápida**: Utiliza la lógica de bit-shuffling de Google y descifra con claves AES-128 nativas de forma instantánea.
@@ -20,12 +19,16 @@ Un script moderno en TypeScript para Bun diseñado para descargar tus libros de 
 ## 🛠️ Cómo funciona bajo el capó
 
 1. **Autenticación (Auth)**: Utiliza el archivo `cookies.txt` (en formato Netscape) exportado desde tu navegador para autenticar las peticiones.
+
 2. **Clave de desencriptación**: Obtiene el HTML del lector de libros, extrae un payload codificado en base64 y descifra la clave AES de 16 bytes mediante la lógica de manipulación de bits (bit-shuffling) de Google.
+
 3. **Manifiesto**: Descarga el manifiesto JSON del libro.
+
 4. **Descarga y Desencriptación**:
 
-   - **Modo PDF**: Descarga las imágenes en alta resolución de las páginas encriptadas, las desencripta a través de AES-128-CBC y las une en un PDF utilizando `pdf-lib`. Detecta y maneja automáticamente el orden de páginas con diseño de derecha a izquierda (RTL, como en el Manga).
-   - **Modo EPUB**: Descarga los capítulos XHTML encriptados, los desencripta (vector de inicialización/IV + longitud + bloques de cifrado), descarga e integra todos los recursos en línea (imágenes) como archivos comprimidos dentro de la estructura del EPUB para soporte sin conexión, obtiene la portada del libro y los empaqueta en un archivo zip EPUB válido.
+    - **Modo PDF**: Descarga las imágenes en alta resolución de las páginas encriptadas, las desencripta a través de AES-128-CBC y las une en un PDF utilizando `pdf-lib`. Detecta y maneja automáticamente el orden de páginas con diseño de derecha a izquierda (RTL, como en el Manga).
+
+    - **Modo EPUB**: Descarga los capítulos XHTML encriptados, los desencripta (vector de inicialización/IV + longitud + bloques de cifrado), descarga e integra todos los recursos en línea (imágenes) como archivos comprimidos dentro de la estructura del EPUB para soporte sin conexión, obtiene la portada del libro y los empaqueta en un archivo zip EPUB válido.
 
 ## 🚀 Instalación de Bun
 
@@ -44,8 +47,7 @@ curl -fsSL https://bun.sh/install | bash
 ```
 
 ### macOS
-> [!NOTE]
-> Este proyecto **aún no ha sido probado en macOS / Mac**. Si lo utilizas en este sistema operativo, ten en cuenta que podrían surgir comportamientos inesperados, aunque en teoría debería funcionar al estar basado en Bun.
+> **Nota**: Este proyecto **aún no ha sido probado en macOS / Mac**. Si lo utilizas en este sistema operativo, ten en cuenta que podrían surgir comportamientos inesperados, aunque en teoría debería funcionar al estar basado en Bun.
 
 ## ⚙️ Configuración y Uso
 
